@@ -19,6 +19,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import com.kevinsouza.todosimple.security.JWTAuthenticationFilter;
 import com.kevinsouza.todosimple.security.JWTUtil;
 
 @Configuration
@@ -38,22 +39,24 @@ public class SecurityConfig {
 
 	@Bean
 	SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-
 		http.cors(cors -> cors.configurationSource(corsConfigurationSource())).csrf(csrf -> csrf.disable());
 
 		AuthenticationManagerBuilder authenticationManagerBuilder = http
 				.getSharedObject(AuthenticationManagerBuilder.class);
+
 		authenticationManagerBuilder.userDetailsService(this.userDetailsService)
 				.passwordEncoder(bCryptPasswordEncoder());
 		this.authenticationManager = authenticationManagerBuilder.build();
 
 		http.authorizeHttpRequests(requests -> requests.requestMatchers(HttpMethod.POST, PUBLIC_MATCHERS_POST)
-				.permitAll().requestMatchers(PUBLIC_MATCHERS).permitAll().anyRequest().authenticated());
+				.permitAll().requestMatchers(PUBLIC_MATCHERS).permitAll().anyRequest().authenticated())
+				.authenticationManager(authenticationManager);
+
+		http.addFilter(new JWTAuthenticationFilter(this.authenticationManager, this.jwtUtil));
 
 		http.sessionManagement(management -> management.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
 		return http.build();
-
 	}
 
 	@Bean
